@@ -178,3 +178,7 @@ deploy/               Ubuntu setup script
 ```
 
 Built-in maps are data in `shared/maps.js`. Everything else is drawn in `client/js/props.js` and `client/js/models.js`.
+
+## License
+
+[MIT](LICENSE): you can use, change and share this game, including commercially, as long as you keep the copyright notice.

@@ -1,0 +1,6 @@
+node_modules/
+certs/
+.claude/
+.DS_Store
+# maps made in the editor are saved here by the server
+maps/*.json

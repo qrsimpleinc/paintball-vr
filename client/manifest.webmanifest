@@ -1,0 +1,9 @@
+{
+  "name": "Paintball VR",
+  "short_name": "Paintball",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#12161d",
+  "theme_color": "#1a1f29",
+  "ovr_package_name": "local.paintball.vr"
+}

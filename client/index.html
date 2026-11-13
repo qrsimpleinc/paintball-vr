@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <script>
+    // Quest over plain http on the LAN: VR needs a secure page, so jump to the https port.
+    if (location.protocol === 'http:' && !/^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) && /OculusBrowser|Quest/i.test(navigator.userAgent))
+      location.replace('https://' + location.hostname + ':8443' + location.pathname + location.search);
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paintball VR</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta name="theme-color" content="#1a1f29">
+  <style>
+    :root { --bg: #12161d; --panel: rgba(20, 25, 34, 0.88); --text: #f1f3f6; --muted: #9aa4b2; --orange: #ff7a1a; --cyan: #1ab8ff; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, sans-serif; }
+    canvas { display: block; }
+    #lobby { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    .card { background: var(--panel); border-radius: 18px; padding: 28px; width: min(420px, 100%); box-shadow: 0 20px 60px rgba(0,0,0,.4); backdrop-filter: blur(6px); }
+    h1 { margin: 0 0 4px; font-size: 34px; letter-spacing: -0.5px; }
+    h1 span:first-child { color: var(--orange); } h1 span:last-child { color: var(--cyan); }
+    .sub { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+    label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
+    input, select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #333c4a; background: #1b212c; color: var(--text); font-size: 16px; }
+    label.check { display: flex; gap: 8px; align-items: center; margin-top: 14px; }
+    label.check input { width: auto; }
+    input[type=range] { padding: 0; accent-color: var(--orange); }
+    .row { display: flex; gap: 10px; } .row > div { flex: 1; }
+    button { width: 100%; margin-top: 12px; padding: 13px; font-size: 17px; font-weight: 600; border: 0; border-radius: 12px; cursor: pointer; color: #fff; }
+    #enter-vr { background: linear-gradient(90deg, var(--orange), #ff4d6a); margin-top: 20px; }
+    #enter-vr:disabled { background: #3a4250; color: #aab; cursor: default; }
+    #play { background: #2c6bed; } #spectate { background: #3a4250; }
+    #editor-link { display: block; text-align: center; margin-top: 12px; color: var(--cyan); text-decoration: none; font-size: 14px; }
+    #vr-note { color: var(--muted); font-size: 13px; margin-top: 8px; min-height: 1em; }
+    .help { color: var(--muted); font-size: 12px; margin-top: 16px; line-height: 1.5; }
+    #hud { display: none; pointer-events: none; }
+    #hud-score { position: fixed; top: 12px; left: 50%; transform: translateX(-50%); background: var(--panel); padding: 8px 18px; border-radius: 12px; font-weight: 700; font-size: 20px; display: flex; gap: 18px; }
+    #hud-score .clock { color: #fff; min-width: 54px; text-align: center; }
+    #hud-flags { position: fixed; top: 58px; left: 50%; transform: translateX(-50%); background: var(--panel); padding: 5px 14px; border-radius: 10px; font-size: 14px; display: none; white-space: nowrap; }
+    #hud-ammo { position: fixed; bottom: 16px; right: 16px; background: var(--panel); padding: 8px 14px; border-radius: 10px; font-size: 16px; }
+    #hud-feed { position: fixed; top: 64px; right: 16px; text-align: right; font-size: 14px; }
+    #hud-feed div { background: var(--panel); padding: 4px 10px; border-radius: 8px; margin-bottom: 4px; }
+    #hud-msg { position: fixed; top: 38%; left: 50%; transform: translateX(-50%); background: var(--panel); padding: 12px 24px; border-radius: 14px; font-size: 24px; font-weight: 700; display: none; text-align: center; }
+    #hud-hit { position: fixed; bottom: 12%; left: 50%; transform: translateX(-50%); display: none; font-size: 40px; font-weight: 900; color: #ffe14a; white-space: nowrap; -webkit-text-stroke: 2px rgba(40,30,0,.75); text-shadow: 0 3px 0 rgba(0,0,0,.35); transform-origin: center; }
+    #scope-overlay { position: fixed; inset: 0; display: none; pointer-events: none; background: radial-gradient(circle at center, transparent 0 28vmin, rgba(0,0,0,.25) 28.3vmin, #0b0d10 29vmin); }
+    #scope-overlay::before, #scope-overlay::after { content: ''; position: fixed; left: 50%; top: 50%; background: rgba(0,0,0,.7); }
+    #scope-overlay::before { width: 56vmin; height: 2px; transform: translate(-50%, -50%); }
+    #scope-overlay::after { width: 2px; height: 56vmin; transform: translate(-50%, -50%); }
+    #crosshair { position: fixed; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 2px rgba(0,0,0,.5); }
+    #room-label { position: fixed; bottom: 16px; left: 16px; color: var(--muted); font-size: 13px; }
+    #scoreboard { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; gap: 20px; padding: 16px; pointer-events: none; }
+    .sb-team { background: var(--panel); border-top: 4px solid; border-radius: 12px; padding: 12px 16px; width: min(300px, 45vw); }
+    .sb-team h3 { margin: 0 0 8px; }
+    .sb-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #2a3240; }
+    .sb-row.me { font-weight: 700; }
+    #debug { position: fixed; top: 64px; left: 16px; background: var(--panel); padding: 12px 14px; border-radius: 12px; font-size: 13px; width: 220px; display: none; }
+    #debug label { display: flex; align-items: center; gap: 8px; margin: 6px 0; color: var(--text); }
+    #debug input[type=checkbox] { width: auto; }
+    #debug select { padding: 4px 6px; font-size: 13px; }
+    #debug-info { color: #8f8; margin-bottom: 6px; white-space: pre; }
+    #map-label { position: fixed; bottom: 34px; left: 16px; color: var(--muted); font-size: 13px; }
+    #vote { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; padding: 16px; background: rgba(0,0,0,.35); z-index: 5; }
+    .vote-box { background: var(--panel); border-radius: 18px; padding: 22px; width: min(760px, 100%); text-align: center; }
+    .vote-box h2 { margin: 0 0 4px; }
+    #vote-timer { color: var(--muted); margin-bottom: 14px; }
+    .vote-cards { display: flex; gap: 12px; flex-wrap: wrap; }
+    .vote-card { flex: 1 1 180px; margin: 0; background: #262d3a; text-align: left; padding: 14px; border-radius: 14px; display: flex; flex-direction: column; gap: 6px; position: relative; font-size: 16px; }
+    .vote-card small { color: #cdd3dd; font-weight: 400; font-size: 13px; line-height: 1.35; }
+    .vote-card.mine { background: linear-gradient(135deg, var(--orange), #ff4d6a); }
+    .vote-key { position: absolute; top: 10px; right: 12px; opacity: .6; font-size: 13px; }
+    .vote-count { color: #ffd36a; font-size: 14px; }
+    .vote-card.mine .vote-count { color: #fff; }
+    .vote-hint { color: var(--muted); font-size: 12px; margin: 12px 0 0; }
+    #vr-again { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); width: auto; padding: 12px 24px; display: none; background: linear-gradient(90deg, var(--orange), #ff4d6a); }
+  </style>
+  <script type="importmap">
+    { "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/" } }
+  </script>
+</head>
+<body>
+  <div id="lobby">
+    <div class="card">
+      <h1><span>Paint</span>ball <span>VR</span></h1>
+      <p class="sub">4 vs 4 · Team Battle or Capture the Flag</p>
+      <label for="name">Your name</label>
+      <input id="name" maxlength="16" autocomplete="off">
+      <label for="how">How to play</label>
+      <select id="how"><option value="find">Find players: wait for others, bots fill empty places</option><option value="room">Private room: share a room code</option></select>
+      <div id="region-box" style="display:none"><label for="region">Server</label><select id="region"><option value="">Closest server</option></select></div>
+      <div class="row private-only">
+        <div><label for="room">Room code</label><input id="room" maxlength="16" autocomplete="off"></div>
+        <div><label for="bots">Bots</label>
+          <select id="bots"><option value="0">0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option value="7">7 (fill)</option></select>
+        </div>
+      </div>
+      <label for="mode">Game</label>
+      <select id="mode"><option value="tdm">Team Battle: most hits wins</option><option value="ctf">Capture the Flag: first to 3 captures</option></select>
+      <div class="private-only">
+        <label for="map">Map (when you create the room)</label>
+        <select id="map"></select>
+        <label for="difficulty">Bot difficulty</label>
+        <select id="difficulty"><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select>
+      </div>
+      <label for="gripmode">VR grip</label>
+      <select id="gripmode"><option value="toggle">Press Grip to grab, press again to drop</option><option value="hold">Hold Grip to hold a weapon</option></select>
+      <label for="volume">Sound volume</label>
+      <input type="range" id="volume" min="0" max="100" step="5">
+      <label class="check"><input type="checkbox" id="shadows"> Real-time shadows (turn off if Quest 2 stutters)</label>
+      <button id="enter-vr" disabled>VR not detected</button>
+      <div id="vr-note"></div>
+      <button id="play">Play on desktop</button>
+      <button id="spectate">Watch a bots-only match</button>
+      <a id="editor-link" href="/editor.html">✏️ Map editor: draw your own map</a>
+      <div class="help">
+        You start with a pistol. More weapons lie on the map (shotgun, burst rifle, scope rifle, launcher, sprayer, grenade, mine, shield, foam mallet): take one and it's yours until you drop it. One weapon per hand.<br>
+        <b>Quest:</b> Grip near a weapon to grab it, let go to drop it where it is. Grenades: let go and grab again quickly to light one (3 seconds), then swing and let go to throw it. Grab an enemy grenade before it goes off to make it yours, or shoot one to set it off. Trigger fires (hold for the sprayer), B/Y reloads. Release a mine against a floor or wall to stick it there. Swing the mallet into an enemy. Look through the rifle scope to zoom. Left stick moves (click to run), right stick snap-turns (click to crouch, or just crouch for real), A/X jumps.<br>
+        <b>Desktop:</b> WASD + mouse, left click = right hand, right click = left hand (fire / raise shield). Grenade: click or G lights it, again throws it; E catches an enemy grenade you're looking at. E pick up, Q drop right, V drop left, X swap hands, G throw grenade, R reload, Z zoom (scope rifle), click with a mine to place it, click with the mallet to swing, Space jump, Shift run, C crouch (hold), Tab scores, M mute.
+      </div>
+    </div>
+  </div>
+
+  <div id="hud">
+    <div id="hud-score"></div>
+    <div id="hud-flags"></div>
+    <div id="hud-feed"></div>
+    <div id="hud-msg"></div>
+    <div id="hud-hit"></div>
+    <div id="hud-ammo"></div>
+    <div id="crosshair"></div>
+    <div id="scope-overlay"></div>
+    <div id="room-label"></div>
+    <div id="map-label"></div>
+  </div>
+  <div id="scoreboard"></div>
+  <div id="debug">
+    <div id="debug-info"></div>
+    <label>Map <select id="dbg-map"></select></label>
+      <label>Game <select id="dbg-mode"><option value="tdm">Team Battle</option><option value="ctf">Capture the Flag</option></select></label>
+    <label>Bots <select id="dbg-bots"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label>
+    <label>Difficulty <select id="dbg-diff"><option value="easy">Easy</option><option value="normal">Normal</option><option value="hard">Hard</option></select></label>
+    <label><input type="checkbox" id="dbg-freeze"> Freeze bots</label>
+    <label><input type="checkbox" id="dbg-noshoot"> Bots don't shoot</label>
+    <label><input type="checkbox" id="dbg-paths"> Show bot paths</label>
+  </div>
+  <div id="vote"><div class="vote-box"><h2>Vote for the next map</h2><div id="vote-timer"></div><div class="vote-cards"></div><p class="vote-hint">Click a map or press 1 / 2 / 3</p></div></div>
+  <button id="vr-again">Re-enter VR</button>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

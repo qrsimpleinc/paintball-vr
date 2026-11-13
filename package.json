@@ -1,0 +1,16 @@
+{
+  "name": "paintball-vr",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Original 4v4 WebXR paintball game for Meta Quest browser and desktop",
+  "type": "module",
+  "scripts": {
+    "start": "node server/server.js",
+    "cert": "sh scripts/make-cert.sh",
+    "fake": "node tools/fake-clients.js"
+  },
+  "dependencies": {
+    "three": "0.170.0",
+    "ws": "8.18.0"
+  }
+}

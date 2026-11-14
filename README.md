@@ -2,6 +2,8 @@
 
 An original 4v4 team paintball game that runs in the browser: in VR on Meta Quest (Quest Browser, WebXR) and on a computer with mouse and keyboard. Bots fill any empty places, so you can play alone or with friends.
 
+![A Team Battle on Gravel Pit, seen from the player's eyes](docs/screenshots/gameplay.jpg)
+
 - **Two game modes:** Team Battle and Capture the Flag
 - **Six maps**, plus a map editor for making your own
 - **Weapons:** pistol, shotgun, burst rifle, scope rifle, paint launcher, sprayer, grenade, mine, shield and foam mallet
@@ -9,6 +11,19 @@ An original 4v4 team paintball game that runs in the browser: in VR on Meta Ques
 - **Multiplayer** on your home network, or online with a matchmaker and as many game servers as you need
 
 Everything is made in code: the 3D models, maps and sounds (synthesized with Web Audio). There are no asset files.
+
+## Screenshots
+
+| | |
+|---|---|
+| ![Moonlight Fair, a night carnival map](docs/screenshots/night-fair.jpg) | ![Capture the Flag on Starlight Drive-In](docs/screenshots/capture-the-flag.jpg) |
+| **Moonlight Fair**: night carnival | **Capture the Flag** on Starlight Drive-In |
+| ![Pump Station at night](docs/screenshots/pump-station.jpg) | ![Lumberyard Lane, first-person view](docs/screenshots/first-person.jpg) |
+| **Pump Station**: night | **Lumberyard Lane**: first-person view |
+| ![The map editor with a copy of Windmill Farm](docs/screenshots/map-editor.jpg) | ![The lobby](docs/screenshots/lobby.jpg) |
+| **Map editor**: draw your own maps | **Lobby**: pick a game, map and bots |
+
+These are desktop screenshots. In VR you see the same world with your hands and weapons, and the score on your wrist.
 
 ## Quick start
 
